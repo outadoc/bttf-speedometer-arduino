@@ -1,18 +1,19 @@
-#include <Timer.h>
+#include <TimerOne.h>
 #include <OBD2UART.h>
 #include <SevSeg.h>
+#include <Narcoleptic.h>
 
 SevSeg sevseg;
 COBD obd;
-Timer t;
 
-int lastReadSpeed = -1;
+volatile int lastReadSpeed = -1;
 
 void setup() {
   setupDisplay();
   setupObdConnection();
 
-  t.every(100, readCurrentSpeed);
+  Timer1.initialize(13000);
+  Timer1.attachInterrupt(refreshDisplay);
 }
 
 void setupDisplay() {
@@ -29,44 +30,48 @@ void setupDisplay() {
 }
 
 void setupObdConnection() {
-  delay(1000);
-
   byte version = obd.begin();
-
-  delay(1000);
   
   // initialize OBD-II adapter
-  while (!obd.init());
+  for (;;) {
+      if (obd.init())
+          break;
+      
+      obd.enterLowPowerMode();
+      Narcoleptic.delay(7000);
+      obd.leaveLowPowerMode();
+  }
 }
 
-void loop() {
+void loop() {  
   if (lastReadSpeed < 0) {
     // Clear display if we couldn't read the speed
     sevseg.blank();
+
+    obd.enterLowPowerMode();
+    Narcoleptic.delay(7000);
+    obd.leaveLowPowerMode();
   } else {
     // Display last read speed if things are ok
-    displaySpeed(lastReadSpeed);
+    sevseg.setNumber(lastReadSpeed, 0);
   }
-  
+
+  readCurrentSpeed();
+}
+
+void refreshDisplay() {
   sevseg.refreshDisplay();
-  t.update();
 }
 
 // Call with an interval of [reasonable] ms
-int readCurrentSpeed() {
+void readCurrentSpeed() {
   int value;
-
   if (obd.readPID(PID_SPEED, value)) {
-    float modifier = (analogRead(0) / 1024.0) * 100.0;
+    //float modifier = (analogRead(0) / 1024.0) * 100.0;
     lastReadSpeed = value;
-    return lastReadSpeed;
   }
 
   lastReadSpeed = -1;
-  return lastReadSpeed;
 }
 
-void displaySpeed(int speed) {
-  sevseg.setNumber(speed, 0);
-}
 
