@@ -6,14 +6,17 @@
 #define STATE_DISCONNECTED 0
 #define STATE_CONNECTED 1
 
+//#define DEBUG
+
 SevSeg sevseg;
 COBD obd;
 
-volatile unsigned int lastReadSpeed = 0;
+volatile unsigned int lastReadSpeed;
 volatile byte state;
 
 void setup() {
   state = STATE_DISCONNECTED;
+  lastReadSpeed = 0;
   
   setupDisplay();
 
@@ -34,7 +37,8 @@ void setupDisplay() {
 }
 
 void setupObdConnection() {
-  /*byte version = obd.begin();
+  #ifndef DEBUG
+  obd.begin();
   
   // initialize OBD-II adapter
   for (;;) {
@@ -46,17 +50,20 @@ void setupObdConnection() {
       obd.enterLowPowerMode();
       Narcoleptic.delay(7000);
       obd.leaveLowPowerMode();
-  }*/
+  }
+  #endif
 
   state = STATE_CONNECTED;
+
+  #ifdef DEBUG
   delay(5000);
+  #endif
 }
 
 void loop() {  
   if (state == STATE_DISCONNECTED) {
     // Clear display if we couldn't read the speed
     sevseg.blank();
-    
     setupObdConnection();
   }
   
@@ -72,16 +79,20 @@ void refreshDisplay() {
 
 // Call with an interval of [reasonable] ms
 void readCurrentSpeed() {
+  #ifndef DEBUG
   int value;
-  /*if (obd.readPID(PID_SPEED, value)) {
+  if (obd.readPID(PID_SPEED, value)) {
     //float modifier = (analogRead(0) / 1024.0) * 100.0;
     lastReadSpeed = value;
-  }*/
+  } else {
+    state = STATE_DISCONNECTED;
+  }
+  #endif
 
+  #ifdef DEBUG
   lastReadSpeed = random(1, 99);
   delay(300);
-
-  //state = STATE_DISCONNECTED;
+  #endif
 }
 
 
