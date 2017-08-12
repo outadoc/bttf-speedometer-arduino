@@ -10,10 +10,11 @@ volatile int lastReadSpeed = -1;
 
 void setup() {
   setupDisplay();
-  setupObdConnection();
 
-  Timer1.initialize(13000);
+  Timer1.initialize(10000);
   Timer1.attachInterrupt(refreshDisplay);
+  
+  setupObdConnection();
 }
 
 void setupDisplay() {
@@ -26,7 +27,6 @@ void setupDisplay() {
   bool leadingZeros = false; // Use 'true' if you'd like to keep the leading zeros
   
   sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments, updateWithDelays, leadingZeros);
-  sevseg.setBrightness(90);
 }
 
 void setupObdConnection() {
