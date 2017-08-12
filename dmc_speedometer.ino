@@ -3,18 +3,22 @@
 #include <SevSeg.h>
 #include <Narcoleptic.h>
 
+#define STATE_DISCONNECTED 0
+#define STATE_CONNECTED 1
+
 SevSeg sevseg;
 COBD obd;
 
-volatile int lastReadSpeed = -1;
+volatile unsigned int lastReadSpeed = 0;
+volatile byte state;
 
 void setup() {
+  state = STATE_DISCONNECTED;
+  
   setupDisplay();
 
   Timer1.initialize(10000);
   Timer1.attachInterrupt(refreshDisplay);
-  
-  setupObdConnection();
 }
 
 void setupDisplay() {
@@ -30,32 +34,35 @@ void setupDisplay() {
 }
 
 void setupObdConnection() {
-  byte version = obd.begin();
+  /*byte version = obd.begin();
   
   // initialize OBD-II adapter
   for (;;) {
       if (obd.init())
           break;
+
+      state = STATE_DISCONNECTED;
       
       obd.enterLowPowerMode();
       Narcoleptic.delay(7000);
       obd.leaveLowPowerMode();
-  }
+  }*/
+
+  state = STATE_CONNECTED;
+  delay(5000);
 }
 
 void loop() {  
-  if (lastReadSpeed < 0) {
+  if (state == STATE_DISCONNECTED) {
     // Clear display if we couldn't read the speed
     sevseg.blank();
-
-    obd.enterLowPowerMode();
-    Narcoleptic.delay(7000);
-    obd.leaveLowPowerMode();
-  } else {
-    // Display last read speed if things are ok
-    sevseg.setNumber(lastReadSpeed, 0);
+    
+    setupObdConnection();
   }
-
+  
+  // Display last read speed if things are ok
+  sevseg.setNumber(lastReadSpeed, 0);
+  
   readCurrentSpeed();
 }
 
@@ -66,12 +73,15 @@ void refreshDisplay() {
 // Call with an interval of [reasonable] ms
 void readCurrentSpeed() {
   int value;
-  if (obd.readPID(PID_SPEED, value)) {
+  /*if (obd.readPID(PID_SPEED, value)) {
     //float modifier = (analogRead(0) / 1024.0) * 100.0;
     lastReadSpeed = value;
-  }
+  }*/
 
-  lastReadSpeed = -1;
+  lastReadSpeed = random(1, 99);
+  delay(300);
+
+  //state = STATE_DISCONNECTED;
 }
 
 
