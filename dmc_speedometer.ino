@@ -8,15 +8,15 @@
 
 //#define DEBUG
 
+typedef int speed_t;
+
 SevSeg sevseg;
 COBD obd;
 
-volatile unsigned int lastReadSpeed;
 volatile byte state;
 
 void setup() {
   state = STATE_DISCONNECTED;
-  lastReadSpeed = 0;
   
   setupDisplay();
 
@@ -42,15 +42,16 @@ void setupObdConnection() {
   
   // initialize OBD-II adapter
   for (;;) {
-      // Try to init and read speed; if we can't do either of them, sleep for a while
-      if (obd.init() && obd.readPID(PID_SPEED, value))
-          break;
+    int value;
+    // Try to init and read speed; if we can't do either of them, sleep for a while
+    if (obd.init() && obd.readPID(PID_SPEED, value))
+        break;
 
-      state = STATE_DISCONNECTED;
-      
-      obd.enterLowPowerMode();
-      Narcoleptic.delay(7000);
-      obd.leaveLowPowerMode();
+    state = STATE_DISCONNECTED;
+    
+    obd.enterLowPowerMode();
+    Narcoleptic.delay(7000);
+    obd.leaveLowPowerMode();
   }
   #endif
 
@@ -67,11 +68,17 @@ void loop() {
     sevseg.blank();
     setupObdConnection();
   }
+
+  speed_t speed = readCurrentSpeed();
   
   // Display last read speed if things are ok
-  sevseg.setNumber(lastReadSpeed, 0);
-  
-  readCurrentSpeed();
+  if (speed < 100) {
+      sevseg.setNumber(speed, 0);
+  } else {
+      // If the speed is >= 100, don't display the hundreds 
+      // (useful when reading in km/h)
+      sevseg.setNumber(speed - 100, 0);
+  }
 }
 
 // Called every 10 ms
@@ -79,20 +86,21 @@ void refreshDisplay() {
   sevseg.refreshDisplay();
 }
 
-void readCurrentSpeed() {
+speed_t readCurrentSpeed() {
   #ifndef DEBUG
   int value;
   if (obd.readPID(PID_SPEED, value)) {
     //float modifier = (analogRead(0) / 1024.0) * 100.0;
-    lastReadSpeed = value;
-  } else {
-    state = STATE_DISCONNECTED;
+    return value;
   }
+  
+  state = STATE_DISCONNECTED;
+  return -1;
   #endif
 
   #ifdef DEBUG
-  lastReadSpeed = random(1, 99);
   delay(300);
+  return random(1, 99);
   #endif
 }
 
