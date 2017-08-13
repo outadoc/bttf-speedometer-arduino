@@ -42,7 +42,8 @@ void setupObdConnection() {
   
   // initialize OBD-II adapter
   for (;;) {
-      if (obd.init())
+      // Try to init and read speed; if we can't do either of them, sleep for a while
+      if (obd.init() && obd.readPID(PID_SPEED, value))
           break;
 
       state = STATE_DISCONNECTED;
