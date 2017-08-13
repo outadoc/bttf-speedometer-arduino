@@ -6,7 +6,7 @@
 #define STATE_DISCONNECTED 0
 #define STATE_CONNECTED 1
 
-#define DEBUG
+//#define DEBUG
 
 typedef int speed_t;
 
@@ -17,6 +17,10 @@ volatile byte state;
 
 void setup() {
   state = STATE_DISCONNECTED;
+
+  #ifdef DEBUG
+  Serial.begin(115200);
+  #endif
   
   setupDisplay();
 
@@ -89,6 +93,12 @@ void refreshDisplay() {
 
 speed_t adjustSpeed(speed_t speed) {
   float modifier = (float)map(analogRead(0), 0, 1024, 50, 200) / (float)100.0;
+  
+  #ifdef DEBUG
+  Serial.print("modifier: ");
+  Serial.println(modifier);
+  #endif
+  
   return modifier * speed;
 }
 
