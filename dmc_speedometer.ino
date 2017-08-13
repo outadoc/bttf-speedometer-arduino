@@ -6,7 +6,7 @@
 #define STATE_DISCONNECTED 0
 #define STATE_CONNECTED 1
 
-//#define DEBUG
+#define DEBUG
 
 typedef int speed_t;
 
@@ -70,14 +70,15 @@ void loop() {
   }
 
   speed_t speed = readCurrentSpeed();
+  speed_t adjustedSpeed = adjustSpeed(speed);
   
   // Display last read speed if things are ok
-  if (speed < 100) {
-      sevseg.setNumber(speed, 0);
+  if (adjustedSpeed < 100) {
+      sevseg.setNumber(adjustedSpeed, 0);
   } else {
       // If the speed is >= 100, don't display the hundreds 
       // (useful when reading in km/h)
-      sevseg.setNumber(speed - 100, 0);
+      sevseg.setNumber(adjustedSpeed - 100, 0);
   }
 }
 
@@ -86,11 +87,15 @@ void refreshDisplay() {
   sevseg.refreshDisplay();
 }
 
+speed_t adjustSpeed(speed_t speed) {
+  float modifier = (float)map(analogRead(0), 0, 1024, 50, 200) / (float)100.0;
+  return modifier * speed;
+}
+
 speed_t readCurrentSpeed() {
   #ifndef DEBUG
   int value;
   if (obd.readPID(PID_SPEED, value)) {
-    //float modifier = (analogRead(0) / 1024.0) * 100.0;
     return value;
   }
   
