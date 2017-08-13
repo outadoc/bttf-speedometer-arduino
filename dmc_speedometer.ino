@@ -53,16 +53,16 @@ void setupObdConnection() {
   }
   #endif
 
-  state = STATE_CONNECTED;
-
   #ifdef DEBUG
   delay(5000);
   #endif
+  
+  state = STATE_CONNECTED;
 }
 
 void loop() {  
   if (state == STATE_DISCONNECTED) {
-    // Clear display if we couldn't read the speed
+    // Clear display if we couldn't read the speed, and try reconnecting
     sevseg.blank();
     setupObdConnection();
   }
@@ -73,11 +73,11 @@ void loop() {
   readCurrentSpeed();
 }
 
+// Called every 10 ms
 void refreshDisplay() {
   sevseg.refreshDisplay();
 }
 
-// Call with an interval of [reasonable] ms
 void readCurrentSpeed() {
   #ifndef DEBUG
   int value;
