@@ -92,14 +92,14 @@ void refreshDisplay() {
 }
 
 speed_t adjustSpeed(speed_t speed) {
-  float modifier = (float)map(analogRead(0), 0, 1024, 20, 180) / (float)100.0;
+  float modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
   
   #ifdef DEBUG
   Serial.print("modifier: ");
-  Serial.println(modifier);
+  Serial.println(modifier, 4);
   #endif
   
-  return modifier * speed;
+  return round(modifier * (float)speed);
 }
 
 speed_t readCurrentSpeed() {
@@ -115,7 +115,7 @@ speed_t readCurrentSpeed() {
 
   #ifdef DEBUG
   delay(300);
-  return random(1, 99);
+  return 140;
   #endif
 }
 
