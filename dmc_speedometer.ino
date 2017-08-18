@@ -10,8 +10,8 @@
 #define TIMER_INTERVAL_DISPLAY_MS 10
 #define TIMER_INTERVAL_PROBE_MS   200
 
-#define DEBUG
-#define TRACE
+//#define DEBUG
+//#define TRACE
 
 typedef int speed_t;
 
@@ -21,16 +21,30 @@ COBD obd;
 volatile byte state;
 volatile speed_t target_read_speed;
 
-void setup() {
-  state = STATE_DISCONNECTED;
-  target_read_speed = 0;
+float modifier = 1.0;
 
+void setup() {
 #ifdef DEBUG
   Serial.begin(115200);
   Serial.println("initializing speedometer");
 #endif
   
+  state = STATE_DISCONNECTED;
+  target_read_speed = 0;
+
+  // Read speed modifier (1.0 keeps raw speed read from OBD)
+  // Play with the potentiometer to adjust to real speed or switch to mph
+  modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
+
+#ifdef DEBUG
+  Serial.print("modifier value: ");
+  Serial.println(modifier);
+#endif
+
   setup_display();
+
+  // Wait a little for everything to settle before we move on
+  delay(2000);
 
   // Every 10 ms
   Timer1.initialize(TIMER_INTERVAL_DISPLAY_MS * 1000);
@@ -65,9 +79,10 @@ void setup_obd_connection() {
         break;
 
     state = STATE_DISCONNECTED;
-    
-    obd.enterLowPowerMode();
-    Narcoleptic.delay(7000);
+
+    // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
+    obd.enterLowPowerMode();    
+    Narcoleptic.delay(8000);
     obd.leaveLowPowerMode();
   }
 #else
@@ -87,6 +102,10 @@ void loop() {
   interrupts();
   
   if (state == STATE_DISCONNECTED) {
+#ifdef DEBUG
+    Serial.println("disconnected from obd");
+#endif
+
     // Clear display if we couldn't read the speed, and try reconnecting
     sevseg.blank();
     setup_obd_connection();
@@ -126,18 +145,7 @@ void refresh_display() {
 }
 
 speed_t adjust_speed(speed_t speed) {
-  float modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
-  speed_t res = round(modifier * (float)speed);
-  
-#ifdef TRACE
-  Serial.print("modifier: ");
-  Serial.println(modifier, 4);
-
-  Serial.print("speed: ");
-  Serial.println(res);
-#endif
-  
-  return res;
+  return round(modifier * (float)speed);
 }
 
 void display_speed(speed_t speed) {
