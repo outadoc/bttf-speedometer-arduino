@@ -11,7 +11,7 @@
 #define TIMER_INTERVAL_PROBE_MS   200
 
 #define DEBUG
-//#define TRACE
+#define TRACE
 
 typedef int speed_t;
 
@@ -94,13 +94,24 @@ void loop() {
 
   // We want to increment speed one by one until we hit the target speed
   // on a relatively short duration
-  double interval_between_incs = TIMER_INTERVAL_PROBE_MS / (target_speed - curr_disp_speed);
+  double interval_between_incs = TIMER_INTERVAL_PROBE_MS / (abs(target_speed - curr_disp_speed));
+
+#ifdef DEBUG
+  Serial.print(curr_disp_speed);
+  Serial.print(" -> ");
+  Serial.println(target_speed);
+#endif
 
   // Until we've hit the target speed, increment, display and pause
-  while (curr_disp_speed < target_speed) {
-      display_speed(curr_disp_speed++);
-
-      // Pause execution for a fixed amount of time between each iteration
+  while (curr_disp_speed != target_speed) {
+      if (curr_disp_speed < target_speed) {
+        curr_disp_speed++;
+      } else {
+        curr_disp_speed--;
+      }
+      
+      // Display and pause execution for a fixed amount of time between each iteration
+      display_speed(curr_disp_speed);
       delay(interval_between_incs);
   }
 }
@@ -164,7 +175,7 @@ void probe_current_speed() {
   delay(50);
   
   noInterrupts();
-  target_read_speed = (millis() / 1000) % 99;
+  target_read_speed = (millis() / 1000 * 5) % 99;
   interrupts();
 #endif
 }
