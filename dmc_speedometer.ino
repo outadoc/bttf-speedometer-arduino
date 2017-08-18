@@ -11,6 +11,7 @@
 #define TIMER_INTERVAL_PROBE_MS   200
 
 #define DEBUG
+//#define TRACE
 
 typedef int speed_t;
 
@@ -37,6 +38,7 @@ void setup() {
 
   // Every 200 ms
   MsTimer2::set(TIMER_INTERVAL_PROBE_MS, probe_current_speed);
+  MsTimer2::start();
 }
 
 void setup_display() {
@@ -105,6 +107,10 @@ void loop() {
 
 // Called every 10 ms
 void refresh_display() {
+#ifdef TRACE
+  Serial.println("entered refresh_display");
+#endif
+
   sevseg.refreshDisplay();
 }
 
@@ -112,7 +118,7 @@ speed_t adjust_speed(speed_t speed) {
   float modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
   speed_t res = round(modifier * (float)speed);
   
-#ifdef DEBUG
+#ifdef TRACE
   Serial.print("modifier: ");
   Serial.println(modifier, 4);
 
@@ -134,7 +140,7 @@ void display_speed(speed_t speed) {
 }
 
 void probe_current_speed() {
-#ifdef DEBUG
+#ifdef TRACE
   Serial.println("entered probe_current_speed");
 #endif
 
@@ -155,7 +161,7 @@ void probe_current_speed() {
   target_read_speed = 0;
   interrupts();
 #else
-  delay(100);
+  delay(50);
   
   noInterrupts();
   target_read_speed = (millis() / 1000) % 99;
