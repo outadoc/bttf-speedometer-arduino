@@ -65,6 +65,7 @@ void setup_display() {
   bool leadingZeros = false; // Use 'true' if you'd like to keep the leading zeros
   
   sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments, updateWithDelays, leadingZeros);
+  sevseg.blank();
 }
 
 void setup_obd_connection() {
