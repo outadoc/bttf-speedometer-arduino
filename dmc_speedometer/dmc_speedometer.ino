@@ -3,17 +3,22 @@
 #include <OBD2UART.h>
 #include <SevSeg.h>
 #include <Narcoleptic.h>
+#include <NeoSWSerial.h>
 
 #define STATE_DISCONNECTED 0x0
 #define STATE_CONNECTED    0x2
 
 #define TIMER_INTERVAL_DISPLAY_MS 10
-#define TIMER_INTERVAL_PROBE_MS   200
+#define TIMER_INTERVAL_PROBE_MS   500
 
 //#define DEBUG
 //#define TRACE
 
-typedef int speed_t;
+#ifdef DEBUG
+  NeoSWSerial debugSerial(2, 3);
+#endif
+
+typedef uint8_t speed_t;
 
 SevSeg sevseg;
 COBD obd;
@@ -24,9 +29,9 @@ volatile speed_t target_read_speed;
 float modifier = 1.0;
 
 void setup() {
-#ifdef DEBUG
-  Serial.begin(115200);
-  Serial.println("initializing speedometer");
+#ifdef DEBUG  
+  debugSerial.begin(9600);
+  debugSerial.println("initializing speedometer");
 #endif
   
   state = STATE_DISCONNECTED;
@@ -37,8 +42,8 @@ void setup() {
   modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
 
 #ifdef DEBUG
-  Serial.print("modifier value: ");
-  Serial.println(modifier);
+  debugSerial.print("modifier value: ");
+  debugSerial.println(modifier);
 #endif
 
   setup_display();
@@ -57,12 +62,12 @@ void setup() {
 
 void setup_display() {
   byte numDigits = 2;
-  byte digitPins[] = {3, 4};
+  byte digitPins[] = {A1, A2};
   byte segmentPins[] = {5, 6, 7, 8, 9, 10, 11, 12};
-  bool resistorsOnSegments = true; // 'false' means resistors are on digit pins
-  byte hardwareConfig = COMMON_CATHODE; // See README.md for options
-  bool updateWithDelays = false; // Default. Recommended
-  bool leadingZeros = false; // Use 'true' if you'd like to keep the leading zeros
+  bool resistorsOnSegments = true;
+  byte hardwareConfig = COMMON_CATHODE;
+  bool updateWithDelays = false;
+  bool leadingZeros = false;
   
   sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments, updateWithDelays, leadingZeros);
   sevseg.blank();
@@ -104,7 +109,7 @@ void loop() {
   
   if (state == STATE_DISCONNECTED) {
 #ifdef DEBUG
-    Serial.println("disconnected from obd");
+    debugSerial.println("disconnected from obd");
 #endif
 
     // Clear display if we couldn't read the speed, and try reconnecting
@@ -117,11 +122,15 @@ void loop() {
   double interval_between_incs = TIMER_INTERVAL_PROBE_MS / (abs(target_speed - curr_disp_speed));
 
 #ifdef DEBUG
-  Serial.print(curr_disp_speed);
-  Serial.print(" -> ");
-  Serial.println(target_speed);
+  debugSerial.print(curr_disp_speed);
+  debugSerial.print(" -> ");
+  debugSerial.println(target_speed);
 #endif
 
+  if (curr_disp_speed == target_speed) {
+    delay(50);
+  }
+  
   // Until we've hit the target speed, increment, display and pause
   while (curr_disp_speed != target_speed) {
       if (curr_disp_speed < target_speed) {
@@ -139,7 +148,7 @@ void loop() {
 // Called every 10 ms
 void refresh_display() {
 #ifdef TRACE
-  Serial.println("entered refresh_display");
+  debugSerial.println("entered refresh_display");
 #endif
 
   sevseg.refreshDisplay();
@@ -161,7 +170,7 @@ void display_speed(speed_t speed) {
 
 void probe_current_speed() {
 #ifdef TRACE
-  Serial.println("entered probe_current_speed");
+  debugSerial.println("entered probe_current_speed");
 #endif
 
   if (state == STATE_DISCONNECTED)
