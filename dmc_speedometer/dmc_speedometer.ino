@@ -12,7 +12,7 @@
 #define TIMER_INTERVAL_PROBE_MS   500
 
 //#define DISP_STATUS_CODES
-#define MODE_SIMULATION
+//#define MODE_SIMULATION
 //#define LOG_TRACE
 
 #ifdef MODE_SIMULATION
@@ -57,6 +57,14 @@ void setup() {
 #ifdef DISP_STATUS_CODES
     display_status_code(1);
 #endif
+}
+
+void setup_timers() {
+    Timer1.initialize(TIMER_INTERVAL_DISPLAY_MS * 1000);
+    Timer1.attachInterrupt(refresh_display);
+
+    MsTimer2::set(TIMER_INTERVAL_PROBE_MS, display);
+    MsTimer2::start();
 }
 
 void setup_display() {
@@ -116,17 +124,21 @@ void setup_obd_connection() {
     state = STATE_CONNECTED;
 }
 
-void setup_timers() {
-    // Every 10 ms
-    Timer1.initialize(TIMER_INTERVAL_DISPLAY_MS * 1000);
-    Timer1.attachInterrupt(refresh_display);
+void loop() {
+    if (state == STATE_DISCONNECTED) {
+#ifdef MODE_SIMULATION
+        debugSerial.println("disconnected from obd");
+#endif
 
-    // Every 200 ms
-    MsTimer2::set(TIMER_INTERVAL_PROBE_MS, probe_current_speed);
-    MsTimer2::start();
+        // Clear display if we couldn't read the speed, and try reconnecting
+        //sevseg.blank();
+        setup_obd_connection();
+    }
+
+    probe_current_speed();
 }
 
-void loop() {
+void display() {
     // Speed currently displayed; will be incremented to reach target speed
     static speed_t curr_disp_speed = 0;
 
@@ -139,16 +151,6 @@ void loop() {
     const speed_t target_speed = adjust_speed(target_read_speed);
     interrupts();
     
-    if (state == STATE_DISCONNECTED) {
-#ifdef MODE_SIMULATION
-        debugSerial.println("disconnected from obd");
-#endif
-
-        // Clear display if we couldn't read the speed, and try reconnecting
-        //sevseg.blank();
-        setup_obd_connection();
-    }
-
 #ifdef DISP_STATUS_CODES
     display_status_code(8);
 #endif
@@ -164,7 +166,7 @@ void loop() {
 #endif
 
     if (curr_disp_speed == target_speed) {
-        display_speed(curr_disp_speed);        
+        set_displayed_speed(curr_disp_speed);        
         delay(50);
     }
 
@@ -181,7 +183,7 @@ void loop() {
         }
         
         // Display and pause execution for a fixed amount of time between each iteration
-        display_speed(curr_disp_speed);
+        set_displayed_speed(curr_disp_speed);
         delay(interval_between_incs);
     }
 }
@@ -199,7 +201,7 @@ speed_t adjust_speed(speed_t speed) {
     return round(modifier * (float)speed);
 }
 
-void display_speed(speed_t speed) {
+void set_displayed_speed(speed_t speed) {
     if (speed < 100) {
         sevseg.setNumber(speed, 0);
     } else {
@@ -231,6 +233,8 @@ void probe_current_speed() {
         noInterrupts();
         target_read_speed = value;
         interrupts();
+
+        delay(TIMER_INTERVAL_PROBE_MS);
         return;
     }
 
@@ -242,6 +246,8 @@ void probe_current_speed() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
     interrupts();
+
+    delay(TIMER_INTERVAL_PROBE_MS);
 #else
     delay(50);
     
