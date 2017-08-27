@@ -11,8 +11,8 @@
 #define TIMER_INTERVAL_DISPLAY_MS 10
 #define TIMER_INTERVAL_PROBE_MS   500
 
-#define DISP_STATUS_CODES
-//#define MODE_SIMULATION
+//#define DISP_STATUS_CODES
+#define MODE_SIMULATION
 //#define LOG_TRACE
 
 #ifdef MODE_SIMULATION
@@ -25,7 +25,7 @@ SevSeg sevseg;
 COBD obd;
 
 volatile byte state;
-volatile speed_t target_read_speed;
+volatile speed_t target_read_speed = 0;
 
 float modifier = 1.0;
 
@@ -164,6 +164,7 @@ void loop() {
 #endif
 
     if (curr_disp_speed == target_speed) {
+        display_speed(curr_disp_speed);        
         delay(50);
     }
 
@@ -234,7 +235,7 @@ void probe_current_speed() {
     }
 
 #ifdef DISP_STATUS_CODES
-    display_status_code(11);
+    display_status_code(12);
 #endif
 
     noInterrupts();
@@ -251,7 +252,7 @@ void probe_current_speed() {
 }
 
 void display_status_code(byte code) {
-    sevseg.setNumber(0xf0 + code, -1, true);
+    sevseg.setNumber(0x11 * code, -1, true);
     delay(200);
 }
 
