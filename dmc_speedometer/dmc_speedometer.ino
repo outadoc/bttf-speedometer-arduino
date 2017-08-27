@@ -173,15 +173,15 @@ void loop() {
     
     // Until we've hit the target speed, increment, display and pause
     while (curr_disp_speed != target_speed) {
-            if (curr_disp_speed < target_speed) {
-                curr_disp_speed++;
-            } else {
-                curr_disp_speed--;
-            }
-            
-            // Display and pause execution for a fixed amount of time between each iteration
-            display_speed(curr_disp_speed);
-            delay(interval_between_incs);
+        if (curr_disp_speed < target_speed) {
+            curr_disp_speed++;
+        } else {
+            curr_disp_speed--;
+        }
+        
+        // Display and pause execution for a fixed amount of time between each iteration
+        display_speed(curr_disp_speed);
+        delay(interval_between_incs);
     }
 }
 
@@ -200,11 +200,11 @@ speed_t adjust_speed(speed_t speed) {
 
 void display_speed(speed_t speed) {
     if (speed < 100) {
-            sevseg.setNumber(speed, 0);
+        sevseg.setNumber(speed, 0);
     } else {
-            // If the speed is >= 100, truncate display and don't show the hundreds 
-            // (useful when reading in km/h)
-            sevseg.setNumber(speed - 100, 0);
+        // If the speed is >= 100, truncate display and don't show the hundreds 
+        // (useful when reading in km/h)
+        sevseg.setNumber(speed - 100, 0);
     }
 }
 
