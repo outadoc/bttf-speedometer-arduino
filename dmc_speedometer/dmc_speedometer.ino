@@ -10,6 +10,20 @@
 #define TIMER_INTERVAL_DISP_REFRESH_MS 10
 #define TIMER_INTERVAL_DISP_INC_MS   500
 
+#define PIN_SEG_A  5
+#define PIN_SEG_B  6
+#define PIN_SEG_C  7
+#define PIN_SEG_D  8
+#define PIN_SEG_E  9
+#define PIN_SEG_F  10
+#define PIN_SEG_G  11
+#define PIN_SEG_DP 12
+
+#define PIN_DIG_1 A1
+#define PIN_DIG_2 A2
+
+#define PIN_SPEED_ADJUST 0
+
 //#define MODE_SIMULATION
 
 typedef uint8_t speed_t;
@@ -18,9 +32,9 @@ SevSeg sevseg;
 COBD obd;
 
 volatile byte state;
-volatile speed_t target_read_speed = 0;
+volatile speed_t target_read_speed;
 
-float modifier = 1.0;
+float modifier;
 
 void setup() {    
     state = STATE_DISCONNECTED;
@@ -28,7 +42,7 @@ void setup() {
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // Play with the potentiometer to adjust to real speed or switch to mph
-    modifier = (float)map(analogRead(0), 0, 1024, 2000, 18000) / (float)10000.0;
+    modifier = (float)map(analogRead(PIN_SPEED_ADJUST), 0, 1024, 2000, 18000) / (float)10000.0;
 
     setup_display();
 
@@ -48,14 +62,25 @@ void setup_timers() {
 
 void setup_display() {
     byte numDigits = 2;
-    byte digitPins[] = {A1, A2};
-    byte segmentPins[] = {5, 6, 7, 8, 9, 10, 11, 12};
+    byte digitPins[] = {PIN_DIG_1, PIN_DIG_2};
+    byte segmentPins[] = {
+        PIN_SEG_A,
+        PIN_SEG_B,
+        PIN_SEG_C,
+        PIN_SEG_D,
+        PIN_SEG_E,
+        PIN_SEG_F,
+        PIN_SEG_G,
+        PIN_SEG_DP
+    };
     bool resistorsOnSegments = true;
     byte hardwareConfig = COMMON_CATHODE;
     bool updateWithDelays = false;
     bool leadingZeros = false;
     
-    sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, resistorsOnSegments, updateWithDelays, leadingZeros);
+    sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, 
+        resistorsOnSegments, updateWithDelays, leadingZeros);
+    
     sevseg.blank();
 }
 
@@ -67,8 +92,10 @@ void setup_obd_connection() {
     for (;;) {
         int value;
         // Try to init and read speed; if we can't do either of them, sleep for a while
-        if (obd.init() && obd.readPID(PID_SPEED, value))
-                break;
+        if (obd.init() && obd.readPID(PID_SPEED, value)) {
+            // Connection established!
+            break;            
+        }
 
         state = STATE_DISCONNECTED;
         
