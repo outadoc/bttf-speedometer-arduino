@@ -10,7 +10,6 @@
 #define TIMER_INTERVAL_DISP_REFRESH_MS 10
 #define TIMER_INTERVAL_DISP_INC_MS   500
 
-//#define DISP_STATUS_CODES
 //#define MODE_SIMULATION
 
 typedef uint8_t speed_t;
@@ -41,9 +40,9 @@ void setup() {
 
 void setup_timers() {
     Timer1.initialize(TIMER_INTERVAL_DISP_REFRESH_MS * 1000);
-    Timer1.attachInterrupt(refresh_display);
+    Timer1.attachInterrupt(isr_refresh_display);
 
-    MsTimer2::set(TIMER_INTERVAL_DISP_INC_MS, display);
+    MsTimer2::set(TIMER_INTERVAL_DISP_INC_MS, isr_display);
     MsTimer2::start();
 }
 
@@ -95,27 +94,27 @@ void loop() {
     probe_current_speed();
 }
 
-void display() {
+void isr_display() {
     // Speed currently displayed; will be incremented to reach target speed
     static speed_t curr_disp_speed = 0;
     
-    noInterrupts();
     if (state == STATE_DISCONNECTED) {
-        interrupts();
         return;        
     }
     
     // Make copy of target speed
     const speed_t target_speed = adjust_speed(target_read_speed);
-    interrupts();
 
     // We want to increment speed one by one until we hit the target speed
     // on a relatively short duration
     double interval_between_incs = TIMER_INTERVAL_DISP_INC_MS / (abs(target_speed - curr_disp_speed));
 
+    // Enable interrupts for the rest of the procedure,
+    // because we want the display to still be refreshed
+    interrupts();
+
     if (curr_disp_speed == target_speed) {
         set_displayed_speed(curr_disp_speed);        
-        delay(50);
     }
 
     // Until we've hit the target speed, increment, display and pause
@@ -133,7 +132,7 @@ void display() {
 }
 
 // Called every 10 ms
-void refresh_display() {
+void isr_refresh_display() {
     sevseg.refreshDisplay();
 }
 
