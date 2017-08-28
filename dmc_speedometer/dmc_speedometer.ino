@@ -8,8 +8,8 @@
 #define STATE_DISCONNECTED 0x0
 #define STATE_CONNECTED    0x2
 
-#define TIMER_INTERVAL_DISPLAY_MS 10
-#define TIMER_INTERVAL_PROBE_MS   500
+#define TIMER_INTERVAL_DISP_REFRESH_MS 10
+#define TIMER_INTERVAL_DISP_INC_MS   500
 
 //#define DISP_STATUS_CODES
 //#define MODE_SIMULATION
@@ -60,10 +60,10 @@ void setup() {
 }
 
 void setup_timers() {
-    Timer1.initialize(TIMER_INTERVAL_DISPLAY_MS * 1000);
+    Timer1.initialize(TIMER_INTERVAL_DISP_REFRESH_MS * 1000);
     Timer1.attachInterrupt(refresh_display);
 
-    MsTimer2::set(TIMER_INTERVAL_PROBE_MS, display);
+    MsTimer2::set(TIMER_INTERVAL_DISP_INC_MS, display);
     MsTimer2::start();
 }
 
@@ -131,7 +131,7 @@ void loop() {
 #endif
 
         // Clear display if we couldn't read the speed, and try reconnecting
-        //sevseg.blank();
+        sevseg.blank();
         setup_obd_connection();
     }
 
@@ -147,7 +147,12 @@ void display() {
 #endif
     
     noInterrupts();
-    // Make copies of current speed and target speed
+    if (state == STATE_DISCONNECTED) {
+        interrupts();
+        return;        
+    }
+    
+    // Make copy of target speed
     const speed_t target_speed = adjust_speed(target_read_speed);
     interrupts();
     
@@ -157,7 +162,7 @@ void display() {
 
     // We want to increment speed one by one until we hit the target speed
     // on a relatively short duration
-    double interval_between_incs = TIMER_INTERVAL_PROBE_MS / (abs(target_speed - curr_disp_speed));
+    double interval_between_incs = TIMER_INTERVAL_DISP_INC_MS / (abs(target_speed - curr_disp_speed));
 
 #ifdef MODE_SIMULATION
     debugSerial.print(curr_disp_speed);
@@ -233,8 +238,6 @@ void probe_current_speed() {
         noInterrupts();
         target_read_speed = value;
         interrupts();
-
-        delay(TIMER_INTERVAL_PROBE_MS);
         return;
     }
 
@@ -246,8 +249,6 @@ void probe_current_speed() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
     interrupts();
-
-    delay(TIMER_INTERVAL_PROBE_MS);
 #else
     delay(50);
     
