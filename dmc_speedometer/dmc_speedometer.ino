@@ -47,13 +47,13 @@ void setup() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
 
+    pinMode(PIN_USE_IMPERIAL, INPUT);
+    pinMode(PIN_USE_METRIC, INPUT);
+
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // Play with the potentiometer to adjust to real speed or switch to mph
     modifier = (float)map(analogReadAvg(PIN_SPEED_ADJUST, 20, 20), 
                             0, 1024, 9000, 12000) / (float)10000.0;
-
-    pinMode(PIN_USE_IMPERIAL, INPUT);
-    pinMode(PIN_USE_METRIC, INPUT);
 
     #ifdef MODE_SIMULATION
         Serial.begin(9600);
@@ -144,22 +144,13 @@ void loop() {
     }
 
     if (state == STATE_SLEEPING) {
-        sevseg.blank();
-        sevseg.refreshDisplay();
-        
-#ifndef MODE_SIMULATION
-        obd.enterLowPowerMode();
-#endif
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-        noInterrupts(); // make sure we don't get interrupted before we sleep
-        sleep_enable(); // enables the sleep bit in the mcucr register
-        interrupts();   // interrupts allowed now, next instruction WILL be executed
-        sleep_cpu();    // here the device is put to sleep
-        obd.leaveLowPowerMode();
+        enter_sleep_mode();
     }
 
     probe_current_speed();
 }
+
+// INTERRUPTS
 
 void isr_display() {
     // Speed currently displayed; will be incremented to reach target speed
@@ -206,10 +197,7 @@ void isr_refresh_display() {
 void isr_read_display_unit() {
     // If we were sleeping, wake up
     if (state == STATE_SLEEPING) {
-        sleep_disable();
-#ifndef MODE_SIMULATION
-        obd.leaveLowPowerMode();
-#endif
+        leave_sleep_mode();
         state = STATE_DISCONNECTED;
     }
 
@@ -277,4 +265,25 @@ int analogReadAvg(const int sensorPin, const int numberOfSamples, const long tim
     }
 
     return (currentValue / numberOfSamples);
+}
+
+void enter_sleep_mode() {
+    sevseg.blank();
+    sevseg.refreshDisplay();
+    
+#ifndef MODE_SIMULATION
+    obd.enterLowPowerMode();
+#endif
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    noInterrupts(); // make sure we don't get interrupted before we sleep
+    sleep_enable(); // enables the sleep bit in the mcucr register
+    interrupts();   // interrupts allowed now, next instruction WILL be executed
+    sleep_cpu();    // here the device is put to sleep
+}
+
+void leave_sleep_mode() {
+    sleep_disable();
+    #ifndef MODE_SIMULATION
+            obd.leaveLowPowerMode();
+    #endif
 }
