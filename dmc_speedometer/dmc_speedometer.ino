@@ -35,14 +35,21 @@ volatile byte state;
 volatile speed_t target_read_speed;
 
 float modifier;
+volatile bool convert_to_mph;
 
-void setup() {    
+void setup() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // Play with the potentiometer to adjust to real speed or switch to mph
     modifier = (float)map(analogRead(PIN_SPEED_ADJUST), 0, 1024, 2000, 18000) / (float)10000.0;
+    convert_to_mph = true;
+
+    #ifdef MODE_SIMULATION
+        Serial.begin(9600);
+        Serial.println(modifier);
+    #endif
 
     setup_display();
 
@@ -164,6 +171,10 @@ void isr_refresh_display() {
 }
 
 speed_t adjust_speed(speed_t speed) {
+    if (convert_to_mph) {
+        return round(modifier * (float)speed * 0.621371);
+    }
+    
     return round(modifier * (float)speed);
 }
 
