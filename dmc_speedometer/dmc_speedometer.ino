@@ -1,3 +1,4 @@
+#include <avr/sleep.h>
 #include <TimerOne.h>
 #include <MsTimer2.h>
 #include <OBD2UART.h>
@@ -6,6 +7,7 @@
 
 #define STATE_DISCONNECTED 0x0
 #define STATE_CONNECTED    0x2
+#define STATE_SLEEPING     0x3
 
 #define TIMER_INTERVAL_DISP_REFRESH_MS 10
 #define TIMER_INTERVAL_DISP_INC_MS   500
@@ -22,6 +24,9 @@
 #define PIN_DIG_1 A1
 #define PIN_DIG_2 A2
 
+#define PIN_USE_IMPERIAL 2
+#define PIN_USE_METRIC 3
+
 #define PIN_SPEED_ADJUST 0
 
 //#define MODE_SIMULATION
@@ -35,7 +40,8 @@ volatile byte state;
 volatile speed_t target_read_speed;
 
 float modifier;
-volatile bool convert_to_mph;
+volatile bool should_display_imperial;
+volatile bool should_display_metric;
 
 void setup() {
     state = STATE_DISCONNECTED;
@@ -43,20 +49,26 @@ void setup() {
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // Play with the potentiometer to adjust to real speed or switch to mph
-    modifier = (float)map(analogRead(PIN_SPEED_ADJUST), 0, 1024, 2000, 18000) / (float)10000.0;
-    convert_to_mph = true;
+    modifier = (float)map(analogReadAvg(PIN_SPEED_ADJUST, 20, 20), 
+                            0, 1024, 9000, 12000) / (float)10000.0;
+
+    pinMode(PIN_USE_IMPERIAL, INPUT);
+    pinMode(PIN_USE_METRIC, INPUT);
 
     #ifdef MODE_SIMULATION
         Serial.begin(9600);
-        Serial.println(modifier);
+        Serial.println(modifier, 4);
     #endif
 
     setup_display();
+    setup_timers();
+    setup_interrupts();
+
+    // Initialize display unit
+    isr_read_display_unit();
 
     // Wait a little for everything to settle before we move on
     delay(2000);
-
-    setup_timers();
 }
 
 void setup_timers() {
@@ -65,6 +77,12 @@ void setup_timers() {
 
     MsTimer2::set(TIMER_INTERVAL_DISP_INC_MS, isr_display);
     MsTimer2::start();
+}
+
+void setup_interrupts() {
+    // When switching kph/OFF/mph, update the switch states in memory 
+    attachInterrupt(digitalPinToInterrupt(PIN_USE_IMPERIAL), isr_read_display_unit, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_USE_METRIC), isr_read_display_unit, CHANGE);
 }
 
 void setup_display() {
@@ -107,7 +125,7 @@ void setup_obd_connection() {
         state = STATE_DISCONNECTED;
         
         // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
-        obd.enterLowPowerMode();    
+        obd.enterLowPowerMode();
         Narcoleptic.delay(8000);
         obd.leaveLowPowerMode();
     }
@@ -123,6 +141,21 @@ void loop() {
         // Clear display if we couldn't read the speed, and try reconnecting
         sevseg.blank();
         setup_obd_connection();
+    }
+
+    if (state == STATE_SLEEPING) {
+        sevseg.blank();
+        sevseg.refreshDisplay();
+        
+#ifndef MODE_SIMULATION
+        obd.enterLowPowerMode();
+#endif
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        noInterrupts(); // make sure we don't get interrupted before we sleep
+        sleep_enable(); // enables the sleep bit in the mcucr register
+        interrupts();   // interrupts allowed now, next instruction WILL be executed
+        sleep_cpu();    // here the device is put to sleep
+        obd.leaveLowPowerMode();
     }
 
     probe_current_speed();
@@ -170,8 +203,27 @@ void isr_refresh_display() {
     sevseg.refreshDisplay();
 }
 
+void isr_read_display_unit() {
+    // If we were sleeping, wake up
+    if (state == STATE_SLEEPING) {
+        sleep_disable();
+#ifndef MODE_SIMULATION
+        obd.leaveLowPowerMode();
+#endif
+        state = STATE_DISCONNECTED;
+    }
+
+    // Read display mode from switch
+    should_display_imperial = digitalRead(PIN_USE_IMPERIAL);
+    should_display_metric = digitalRead(PIN_USE_METRIC);
+
+    if (!should_display_imperial && !should_display_metric) {
+        state = STATE_SLEEPING;
+    }
+}
+
 speed_t adjust_speed(speed_t speed) {
-    if (convert_to_mph) {
+    if (should_display_imperial) {
         return round(modifier * (float)speed * 0.621371);
     }
     
@@ -212,4 +264,17 @@ void probe_current_speed() {
     target_read_speed = (millis() / 1000 * 5) % 99;
     interrupts();
 #endif
+}
+
+int analogReadAvg(const int sensorPin, const int numberOfSamples, const long timeGap) {
+    static int currentSample;
+    static int currentValue = 0;
+
+    for (int i = 0; i < numberOfSamples; i++) {
+        currentSample = analogRead(sensorPin);
+        currentValue += currentSample;
+        delay(timeGap);
+    }
+
+    return (currentValue / numberOfSamples);
 }
