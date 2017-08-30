@@ -110,6 +110,7 @@ void setup_display() {
 }
 
 void setup_obd_connection() {
+    sevseg.blank();    
 #ifndef MODE_SIMULATION
     obd.begin();
 
@@ -139,12 +140,12 @@ void setup_obd_connection() {
 void loop() {
     if (state == STATE_DISCONNECTED) {
         // Clear display if we couldn't read the speed, and try reconnecting
-        sevseg.blank();
         setup_obd_connection();
     }
 
     if (state == STATE_SLEEPING) {
         enter_sleep_mode();
+        return;
     }
 
     probe_current_speed();
