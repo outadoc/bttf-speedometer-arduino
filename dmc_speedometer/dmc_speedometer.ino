@@ -284,7 +284,7 @@ void enter_sleep_mode() {
 
 void leave_sleep_mode() {
     sleep_disable();
-    #ifndef MODE_SIMULATION
-            obd.leaveLowPowerMode();
-    #endif
+#ifndef MODE_SIMULATION
+    obd.leaveLowPowerMode();
+#endif
 }
