@@ -32,11 +32,12 @@
 //#define MODE_SIMULATION
 
 typedef uint8_t speed_t;
+typedef uint8_t state_t;
 
 SevSeg sevseg;
 COBD obd;
 
-volatile byte state;
+volatile state_t state;
 volatile speed_t target_read_speed;
 
 float modifier;
@@ -138,12 +139,16 @@ void setup_obd_connection() {
 }
 
 void loop() {
-    if (state == STATE_DISCONNECTED) {
+    noInterrupts();
+    state_t loc_state = state;
+    interrupts();
+    
+    if (loc_state == STATE_DISCONNECTED) {
         // Clear display if we couldn't read the speed, and try reconnecting
         setup_obd_connection();
     }
 
-    if (state == STATE_SLEEPING) {
+    if (loc_state == STATE_SLEEPING) {
         enter_sleep_mode();
         return;
     }
