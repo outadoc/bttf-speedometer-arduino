@@ -213,6 +213,9 @@ void isr_read_display_unit() {
 
     if (!should_display_imperial && !should_display_metric) {
         state = STATE_SLEEPING;
+
+        sevseg.blank();
+        sevseg.refreshDisplay();
     }
 }
 
@@ -274,9 +277,6 @@ int analogReadAvg(const int sensorPin, const int numberOfSamples, const long tim
 }
 
 void enter_sleep_mode() {
-    sevseg.blank();
-    sevseg.refreshDisplay();
-    
 #ifndef MODE_SIMULATION
     obd.enterLowPowerMode();
 #endif
