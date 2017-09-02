@@ -29,7 +29,7 @@
 
 #define PIN_SPEED_ADJUST 0
 
-//#define MODE_SIMULATION
+#define MODE_SIMULATION
 
 typedef uint8_t speed_t;
 typedef uint8_t state_t;
@@ -107,11 +107,11 @@ void setup_display() {
     sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, 
         resistorsOnSegments, updateWithDelays, leadingZeros);
     
-    sevseg.blank();
+    sevseg.blankWithDp();
 }
 
 void setup_obd_connection() {
-    sevseg.blank();    
+    sevseg.blankWithDp();
 #ifndef MODE_SIMULATION
     obd.begin();
 
@@ -127,6 +127,7 @@ void setup_obd_connection() {
         state = STATE_DISCONNECTED;
         
         // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
+        sevseg.blank();
         obd.enterLowPowerMode();
         Narcoleptic.delay(8000);
         obd.leaveLowPowerMode();
@@ -213,9 +214,7 @@ void isr_read_display_unit() {
 
     if (!should_display_imperial && !should_display_metric) {
         state = STATE_SLEEPING;
-
         sevseg.blank();
-        sevseg.refreshDisplay();
     }
 }
 
@@ -228,13 +227,7 @@ speed_t adjust_speed(speed_t speed) {
 }
 
 void set_displayed_speed(speed_t speed) {
-    if (speed < 100) {
-        sevseg.setNumber(speed, 0);
-    } else {
-        // If the speed is >= 100, truncate display and don't show the hundreds 
-        // (useful when reading in km/h)
-        sevseg.setNumber(speed - 100, 0);
-    }
+    sevseg.setNumber(speed, 0);
 }
 
 void probe_current_speed() {
@@ -258,7 +251,7 @@ void probe_current_speed() {
     delay(50);
     
     noInterrupts();
-    target_read_speed = (millis() / 1000 * 5) % 99;
+    target_read_speed = (millis() / 1000 * 5) % 145;
     interrupts();
 #endif
 }
