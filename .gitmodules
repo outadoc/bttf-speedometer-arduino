@@ -1,15 +1,15 @@
 [submodule "libraries/SevSeg"]
 	path = libraries/SevSeg
-	url = https://github.com/outadoc/SevSeg
+	url = git@github.com:outadoc/SevSeg.git
 [submodule "libraries/MsTimer2"]
 	path = libraries/MsTimer2
-	url = https://github.com/PaulStoffregen/MsTimer2
+	url = git@github.com:PaulStoffregen/MsTimer2.git
 [submodule "libraries/TimerOne"]
 	path = libraries/TimerOne
-	url = https://github.com/PaulStoffregen/TimerOne
+	url = git@github.com:PaulStoffregen/TimerOne.git
 [submodule "libraries/NeoSWSerial"]
 	path = libraries/NeoSWSerial
-	url = https://github.com/SlashDevin/NeoSWSerial
+	url = git@github.com:SlashDevin/NeoSWSerial.git
 [submodule "libraries/narcoleptic"]
 	path = libraries/narcoleptic
-	url = https://github.com/brabl2/narcoleptic
+	url = git@github.com:brabl2/narcoleptic.git
