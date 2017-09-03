@@ -29,7 +29,7 @@
 
 #define PIN_SPEED_ADJUST 0
 
-#define MODE_SIMULATION
+//#define MODE_SIMULATION
 
 typedef uint8_t speed_t;
 typedef uint8_t state_t;
@@ -127,7 +127,7 @@ void setup_obd_connection() {
         state = STATE_DISCONNECTED;
         
         // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
-        sevseg.blank();
+        sevseg.blankWithDp();
         obd.enterLowPowerMode();
         Narcoleptic.delay(8000);
         obd.leaveLowPowerMode();
@@ -227,6 +227,7 @@ speed_t adjust_speed(speed_t speed) {
 }
 
 void set_displayed_speed(speed_t speed) {
+    // Display number with a decimal point
     sevseg.setNumber(speed, 0);
 }
 
