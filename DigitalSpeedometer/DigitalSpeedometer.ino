@@ -5,34 +5,7 @@
 #include <SevSeg.h>
 #include <Narcoleptic.h>
 
-#define STATE_DISCONNECTED 0x0
-#define STATE_CONNECTED    0x2
-#define STATE_SLEEPING     0x3
-
-#define TIMER_INTERVAL_DISP_REFRESH_MS 10
-#define TIMER_INTERVAL_DISP_INC_MS   500
-
-#define PIN_SEG_A  5
-#define PIN_SEG_B  6
-#define PIN_SEG_C  7
-#define PIN_SEG_D  8
-#define PIN_SEG_E  9
-#define PIN_SEG_F  10
-#define PIN_SEG_G  11
-#define PIN_SEG_DP 12
-
-#define PIN_DIG_1 A1
-#define PIN_DIG_2 A2
-
-#define PIN_USE_IMPERIAL 2
-#define PIN_USE_METRIC 3
-
-#define PIN_SPEED_ADJUST 0
-
-//#define MODE_SIMULATION
-
-typedef uint8_t speed_t;
-typedef uint8_t state_t;
+#include "DigitalSpeedometer.h"
 
 SevSeg sevseg;
 COBD obd;
@@ -53,7 +26,7 @@ void setup() {
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // Play with the potentiometer to adjust to real speed or switch to mph
-    modifier = (float)map(analogReadAvg(PIN_SPEED_ADJUST, 20, 20), 
+    modifier = (float)map(analog_read_avg(PIN_SPEED_ADJUST, 20, 20), 
                             0, 1024, 9000, 12000) / (float)10000.0;
 
     #ifdef MODE_SIMULATION
@@ -257,17 +230,17 @@ void probe_current_speed() {
 #endif
 }
 
-int analogReadAvg(const int sensorPin, const int numberOfSamples, const long timeGap) {
+int analog_read_avg(const int sensor_pin, const int nb_samples, const long time_gap) {
     static int currentSample;
     static int currentValue = 0;
 
-    for (int i = 0; i < numberOfSamples; i++) {
-        currentSample = analogRead(sensorPin);
+    for (int i = 0; i < nb_samples; i++) {
+        currentSample = analogRead(sensor_pin);
         currentValue += currentSample;
-        delay(timeGap);
+        delay(time_gap);
     }
 
-    return (currentValue / numberOfSamples);
+    return (currentValue / nb_samples);
 }
 
 void enter_sleep_mode() {
