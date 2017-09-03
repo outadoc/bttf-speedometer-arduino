@@ -89,32 +89,32 @@ void setup_display() {
 
 void setup_obd_connection() {
     sevseg.blankWithDp();
+
 #ifndef MODE_SIMULATION
     obd.begin();
 
     // initialize OBD-II adapter
-    for (;;) {
+    while (state == STATE_DISCONNECTED) {
         int value;
         // Try to init and read speed; if we can't do either of them, sleep for a while
         if (obd.init() && obd.readPID(PID_SPEED, value)) {
             // Connection established!
-            break;
-        }
+            state = STATE_CONNECTED;
+        } else {
+            // Couldn't connect or read speed
+            state = STATE_DISCONNECTED;
 
-        // Couldn't connect or read speed
-        state = STATE_DISCONNECTED;
-        
-        // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
-        sevseg.blankWithDp();
-        obd.enterLowPowerMode();
-        Narcoleptic.delay(8000);
-        obd.leaveLowPowerMode();
+            // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
+            sevseg.blankWithDp();
+            obd.enterLowPowerMode();
+            Narcoleptic.delay(8000);
+            obd.leaveLowPowerMode();
+        }
     }
 #else
     delay(1000);
-#endif
-
     state = STATE_CONNECTED;
+#endif
 }
 
 void loop() {
