@@ -67,9 +67,6 @@ void setup() {
 
     // Initialize display unit
     isr_read_display_unit();
-
-    // Wait a little for everything to settle before we move on
-    delay(2000);
 }
 
 void setup_timers() {
@@ -163,7 +160,7 @@ void isr_display() {
     // Speed currently displayed; will be incremented to reach target speed
     static speed_t curr_disp_speed = 0;
     
-    if (state == STATE_DISCONNECTED) {
+    if (state != STATE_CONNECTED) {
         return;        
     }
     
@@ -219,7 +216,10 @@ void isr_read_display_unit() {
 }
 
 speed_t adjust_speed(speed_t speed) {
+    // Adjust read speed using modifier (set via potentiometer) and take
+    // unit into account
     if (should_display_imperial) {
+        // Convert from km/h to mph
         return round(modifier * (float)speed * 0.621371);
     }
     
@@ -232,7 +232,7 @@ void set_displayed_speed(speed_t speed) {
 }
 
 void probe_current_speed() {
-    if (state == STATE_DISCONNECTED)
+    if (state != STATE_CONNECTED)
         return;
 
 #ifndef MODE_SIMULATION
