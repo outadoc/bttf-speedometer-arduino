@@ -25,7 +25,8 @@ void setup() {
     pinMode(PIN_USE_METRIC, INPUT);
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
-    // Play with the potentiometer to adjust to real speed or switch to mph
+    // OBD speed can be a bit different from real life speed, so play with 
+    // the potentiometer to adjust to real speed
     modifier = (float)map(analog_read_avg(PIN_SPEED_ADJUST, 20, 20), 
                             0, 1024, 9000, 12000) / (float)10000.0;
 
@@ -38,14 +39,17 @@ void setup() {
     setup_timers();
     setup_interrupts();
 
-    // Initialize display unit
+    // Initialize display unit switch interrupt
     isr_read_display_unit();
 }
 
 void setup_timers() {
+    // Timer that will refresh the display (interpolation using SevSeg)
     Timer1.initialize(TIMER_INTERVAL_DISP_REFRESH_MS * 1000);
     Timer1.attachInterrupt(isr_refresh_display);
 
+    // Timer that will display the speed read from OBD every xxx ms,
+    // interpolating if needed
     MsTimer2::set(TIMER_INTERVAL_DISP_INC_MS, isr_display);
     MsTimer2::start();
 }
@@ -69,6 +73,9 @@ void setup_display() {
         PIN_SEG_G,
         PIN_SEG_DP
     };
+
+    // If you change these you might need to hack around in SevSeg.cpp to
+    // replay my crappy hacks
     bool resistorsOnSegments = true;
     byte hardwareConfig = COMMON_CATHODE;
     bool updateWithDelays = false;
@@ -91,9 +98,10 @@ void setup_obd_connection() {
         // Try to init and read speed; if we can't do either of them, sleep for a while
         if (obd.init() && obd.readPID(PID_SPEED, value)) {
             // Connection established!
-            break;            
+            break;
         }
 
+        // Couldn't connect or read speed
         state = STATE_DISCONNECTED;
         
         // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
@@ -110,20 +118,25 @@ void setup_obd_connection() {
 }
 
 void loop() {
+    // In the main loop, we'll read the car's speed.
+    // It's easier to do that here, because the UART connection uses interrupts
+
     noInterrupts();
     state_t loc_state = state;
     interrupts();
     
     if (loc_state == STATE_DISCONNECTED) {
-        // Clear display if we couldn't read the speed, and try reconnecting
+        // If we got disconnected (or on first loop), try reconnecting
         setup_obd_connection();
     }
 
     if (loc_state == STATE_SLEEPING) {
+        // If we switched the switch to OFF, time for sleepies
         enter_sleep_mode();
         return;
     }
 
+    // We should be connected. PROBE!
     probe_current_speed();
 }
 
@@ -205,11 +218,14 @@ void set_displayed_speed(speed_t speed) {
 }
 
 void probe_current_speed() {
-    if (state != STATE_CONNECTED)
+    if (state != STATE_CONNECTED) {
         return;
+    }
 
 #ifndef MODE_SIMULATION
     int value;
+
+    // Read speed from OBD, and update target_read_speed
     if (obd.readPID(PID_SPEED, value)) {
         noInterrupts();
         target_read_speed = value;
@@ -217,6 +233,8 @@ void probe_current_speed() {
         return;
     }
 
+    // Couldn't read; we're disconnected, change state and we'll care about
+    // that in the main loop
     noInterrupts();
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
@@ -234,6 +252,7 @@ int analog_read_avg(const int sensor_pin, const int nb_samples, const long time_
     static int currentSample;
     static int currentValue = 0;
 
+    // Perform multiple reads on the given pin and return an average
     for (int i = 0; i < nb_samples; i++) {
         currentSample = analogRead(sensor_pin);
         currentValue += currentSample;
@@ -255,6 +274,7 @@ void enter_sleep_mode() {
 }
 
 void leave_sleep_mode() {
+    // Wakey wakey, eggs and bakey
     sleep_disable();
 #ifndef MODE_SIMULATION
     obd.leaveLowPowerMode();
