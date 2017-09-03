@@ -1,0 +1,7 @@
+{
+    "board": "arduino:avr:nano",
+    "configuration": "cpu=atmega328",
+    "port": "/dev/cu.wchusbserialfa130",
+    "sketch": "DigitalSpeedometer/DigitalSpeedometer.ino",
+    "output": "build"
+}
