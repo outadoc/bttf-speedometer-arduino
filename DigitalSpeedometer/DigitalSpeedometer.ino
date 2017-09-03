@@ -230,15 +230,14 @@ void probe_current_speed() {
         noInterrupts();
         target_read_speed = value;
         interrupts();
-        return;
+    } else {
+        // Couldn't read; we're disconnected, change state and we'll care about
+        // that in the main loop
+        noInterrupts();
+        state = STATE_DISCONNECTED;
+        target_read_speed = 0;
+        interrupts();
     }
-
-    // Couldn't read; we're disconnected, change state and we'll care about
-    // that in the main loop
-    noInterrupts();
-    state = STATE_DISCONNECTED;
-    target_read_speed = 0;
-    interrupts();
 #else
     delay(50);
     
