@@ -7,6 +7,9 @@
 #define STATE_CONNECTED    0x2
 #define STATE_SLEEPING     0x3
 
+#define UNIT_MPH HIGH
+#define UNIT_KMH LOW
+
 #define TIMER_INTERVAL_DISP_REFRESH_MS 10
 #define TIMER_INTERVAL_DISP_INC_MS   500
 
@@ -22,10 +25,10 @@
 #define PIN_DIG_1 A1
 #define PIN_DIG_2 A2
 
-#define PIN_USE_IMPERIAL 2
-#define PIN_USE_METRIC   3
+#define PIN_SPEED_ADJUST A0
 
-#define PIN_SPEED_ADJUST 0
+#define PIN_UNIT_SELECT  2
+#define PIN_SLEEP_ENABLE 3
 
 //#define MODE_SIMULATION
 
@@ -39,7 +42,8 @@ void setup_obd_connection();
 
 void isr_display();
 void isr_refresh_display();
-void isr_read_display_unit();
+void isr_check_display_unit();
+void isr_check_sleep_mode();
 
 speed_t adjust_speed(speed_t);
 void set_displayed_speed(speed_t);

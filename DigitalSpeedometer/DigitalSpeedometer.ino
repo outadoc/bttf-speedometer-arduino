@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include <avr/sleep.h>
 #include <TimerOne.h>
 #include <MsTimer2.h>
@@ -13,16 +15,15 @@ COBD obd;
 volatile state_t state;
 volatile speed_t target_read_speed;
 
-float modifier;
-volatile bool should_display_imperial;
-volatile bool should_display_metric;
+volatile float modifier;
+volatile int unit_select;
 
 void setup() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
 
-    pinMode(PIN_USE_IMPERIAL, INPUT);
-    pinMode(PIN_USE_METRIC, INPUT);
+    pinMode(PIN_UNIT_SELECT, INPUT);
+    pinMode(PIN_SLEEP_ENABLE, INPUT);
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // OBD speed can be a bit different from real life speed, so play with 
@@ -39,8 +40,9 @@ void setup() {
     setup_timers();
     setup_interrupts();
 
-    // Initialize display unit switch interrupt
-    isr_read_display_unit();
+    // Initialize display unit switch and sleep mode interrupts
+    isr_check_display_unit();
+    isr_check_sleep_mode();
 }
 
 void setup_timers() {
@@ -55,9 +57,9 @@ void setup_timers() {
 }
 
 void setup_interrupts() {
-    // When switching kph/OFF/mph, update the switch states in memory 
-    attachInterrupt(digitalPinToInterrupt(PIN_USE_IMPERIAL), isr_read_display_unit, CHANGE);
-    attachInterrupt(digitalPinToInterrupt(PIN_USE_METRIC), isr_read_display_unit, CHANGE);
+    // Update the switch states in memory when they're changed
+    attachInterrupt(digitalPinToInterrupt(PIN_UNIT_SELECT), isr_check_display_unit, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(PIN_SLEEP_ENABLE), isr_check_sleep_mode, CHANGE);
 }
 
 void setup_display() {
@@ -118,26 +120,25 @@ void setup_obd_connection() {
 }
 
 void loop() {
-    // In the main loop, we'll read the car's speed.
-    // It's easier to do that here, because the UART connection uses interrupts
-
     noInterrupts();
     state_t loc_state = state;
     interrupts();
-    
-    if (loc_state == STATE_DISCONNECTED) {
-        // If we got disconnected (or on first loop), try reconnecting
-        setup_obd_connection();
-    }
 
-    if (loc_state == STATE_SLEEPING) {
-        // If we switched the switch to OFF, time for sleepies
-        enter_sleep_mode();
-        return;
+    // Yay, finite state machine!
+    switch (loc_state) {
+        case STATE_DISCONNECTED:
+            // If we got disconnected (or on first loop), try reconnecting
+            setup_obd_connection();
+            break;        
+        case STATE_SLEEPING:
+            // If we switched the switch to OFF, time for sleepies
+            enter_sleep_mode();
+            break;
+        case STATE_CONNECTED:
+            // We should be connected. PROBE!
+            probe_current_speed();
+            break;
     }
-
-    // We should be connected. PROBE!
-    probe_current_speed();
 }
 
 // INTERRUPTS
@@ -147,7 +148,7 @@ void isr_display() {
     static speed_t curr_disp_speed = 0;
     
     if (state != STATE_CONNECTED) {
-        return;        
+        return;
     }
     
     // Make copy of target speed
@@ -184,27 +185,31 @@ void isr_refresh_display() {
     sevseg.refreshDisplay();
 }
 
-void isr_read_display_unit() {
+void isr_check_display_unit() {
+    // Read unit mode from switch
+    unit_select = digitalRead(PIN_UNIT_SELECT);
+}
+
+void isr_check_sleep_mode() {
+    // Check if we've enabled the sleep switch
+    int sleep_enable = digitalRead(PIN_SLEEP_ENABLE);
+
     // If we were sleeping, wake up
-    if (state == STATE_SLEEPING) {
+    if (state == STATE_SLEEPING && !sleep_enable) {
         leave_sleep_mode();
         state = STATE_DISCONNECTED;
     }
 
-    // Read display mode from switch
-    should_display_imperial = digitalRead(PIN_USE_IMPERIAL);
-    should_display_metric = digitalRead(PIN_USE_METRIC);
-
-    if (!should_display_imperial && !should_display_metric) {
+    // Go to sleep
+    if (sleep_enable) {
         state = STATE_SLEEPING;
-        sevseg.blank();
     }
 }
 
 speed_t adjust_speed(speed_t speed) {
     // Adjust read speed using modifier (set via potentiometer) and take
     // unit into account
-    if (should_display_imperial) {
+    if (unit_select == UNIT_MPH) {
         // Convert from km/h to mph
         return round(modifier * (float)speed * 0.621371);
     }
@@ -262,6 +267,8 @@ int analog_read_avg(const int sensor_pin, const int nb_samples, const long time_
 }
 
 void enter_sleep_mode() {
+    sevseg.blank();
+
 #ifndef MODE_SIMULATION
     obd.enterLowPowerMode();
 #endif
