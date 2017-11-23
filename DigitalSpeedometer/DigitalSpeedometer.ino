@@ -22,8 +22,8 @@ void setup() {
     state = STATE_DISCONNECTED;
     target_read_speed = 0;
 
-    pinMode(PIN_UNIT_SELECT, INPUT);
-    pinMode(PIN_SLEEP_ENABLE, INPUT);
+    pinMode(PIN_UNIT_SELECT, INPUT_PULLUP);
+    pinMode(PIN_SLEEP_ENABLE, INPUT_PULLUP);
 
     // Read speed modifier (1.0 keeps raw speed read from OBD)
     // OBD speed can be a bit different from real life speed, so play with 
