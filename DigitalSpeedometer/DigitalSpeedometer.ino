@@ -85,34 +85,51 @@ void setup_display() {
     
     sevseg.begin(hardwareConfig, numDigits, digitPins, segmentPins, 
         resistorsOnSegments, updateWithDelays, leadingZeros);
-    
-    sevseg.blankWithDp();
+
+    sevseg.blank();
 }
 
 void setup_obd_connection() {
+    if (state == STATE_CONNECTED) {
+        return;
+    }
+
     sevseg.blankWithDp();
 
 #ifndef MODE_SIMULATION
     obd.begin();
 
-    // initialize OBD-II adapter
-    while (state == STATE_DISCONNECTED) {
-        int value;
-        // Try to init and read speed; if we can't do either of them, sleep for a while
-        if (obd.init() && obd.readPID(PID_SPEED, value)) {
-            // Connection established!
-            state = STATE_CONNECTED;
-        } else {
-            // Couldn't connect or read speed
-            state = STATE_DISCONNECTED;
+    // Initialize OBD-II adapter
+    if (!obd.init()) {
+        // We couldn't even connect to the adapter; sleep
+        noInterrupts();
+        state = STATE_DISCONNECTED;
+        interrupts();
 
-            // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
-            sevseg.blankWithDp();
-            obd.enterLowPowerMode();
-            Narcoleptic.delay(8000);
-            obd.leaveLowPowerMode();
-        }
+        Narcoleptic.delay(IDLE_SLEEP_DELAY_MS);
+        return;
     }
+
+    // We could init the communication; try reading from the ECU
+    int value;    
+    if (!obd.readPID(PID_SPEED, value)) {
+        // Couldn't connect or read speed
+        noInterrupts();
+        state = STATE_DISCONNECTED;
+        interrupts();
+
+        // Enter deep sleep; disable all timers, serial comm., interrupts, etc.
+        // for 8 seconds
+        obd.enterLowPowerMode();
+        Narcoleptic.delay(IDLE_SLEEP_DELAY_MS);
+        obd.leaveLowPowerMode();
+        return;
+    }
+
+    // Connection established!
+    noInterrupts();
+    state = STATE_CONNECTED;
+    interrupts();
 #else
     delay(1000);
     state = STATE_CONNECTED;
@@ -121,6 +138,7 @@ void setup_obd_connection() {
 
 void loop() {
     noInterrupts();
+    isr_check_sleep_mode();
     state_t loc_state = state;
     interrupts();
 
@@ -197,7 +215,6 @@ void isr_check_sleep_mode() {
     // If we were sleeping, wake up
     if (state == STATE_SLEEPING && !sleep_enable) {
         leave_sleep_mode();
-        state = STATE_DISCONNECTED;
     }
 
     // Go to sleep
@@ -267,13 +284,17 @@ int analog_read_avg(const int sensor_pin, const int nb_samples, const long time_
 }
 
 void enter_sleep_mode() {
+    noInterrupts();
+
+    // Blank the display and wait a little before sleeping
     sevseg.blank();
+    delay(500);
 
 #ifndef MODE_SIMULATION
     obd.enterLowPowerMode();
 #endif
+
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    noInterrupts(); // make sure we don't get interrupted before we sleep
     sleep_enable(); // enables the sleep bit in the mcucr register
     interrupts();   // interrupts allowed now, next instruction WILL be executed
     sleep_cpu();    // here the device is put to sleep
@@ -282,7 +303,12 @@ void enter_sleep_mode() {
 void leave_sleep_mode() {
     // Wakey wakey, eggs and bakey
     sleep_disable();
+    
 #ifndef MODE_SIMULATION
     obd.leaveLowPowerMode();
 #endif
+
+    noInterrupts();
+    state = STATE_DISCONNECTED;
+    interrupts();
 }

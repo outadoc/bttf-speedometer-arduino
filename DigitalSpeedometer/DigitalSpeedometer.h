@@ -13,6 +13,8 @@
 #define TIMER_INTERVAL_DISP_REFRESH_MS 10
 #define TIMER_INTERVAL_DISP_INC_MS   500
 
+#define IDLE_SLEEP_DELAY_MS 8000
+
 #define PIN_SEG_A  5
 #define PIN_SEG_B  6
 #define PIN_SEG_C  7
