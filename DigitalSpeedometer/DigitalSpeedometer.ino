@@ -10,7 +10,10 @@
 #include "DigitalSpeedometer.h"
 
 SevSeg sevseg;
+
+#ifndef MODE_SIMULATION
 COBD obd;
+#endif
 
 volatile state_t state;
 volatile speed_t target_read_speed;
@@ -291,7 +294,9 @@ void enter_sleep_mode() {
     delay(500);
 
 #ifndef MODE_SIMULATION
-    obd.enterLowPowerMode();
+    if (state == STATE_CONNECTED) {
+        obd.enterLowPowerMode();
+    }
 #endif
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -304,10 +309,6 @@ void leave_sleep_mode() {
     // Wakey wakey, eggs and bakey
     sleep_disable();
     
-#ifndef MODE_SIMULATION
-    obd.leaveLowPowerMode();
-#endif
-
     noInterrupts();
     state = STATE_DISCONNECTED;
     interrupts();
