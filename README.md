@@ -1,9 +1,12 @@
-# Arduino-based Back to the Future DeLorean Speedometer
+Arduino-based Back to the Future DeLorean Speedometer
+=====================================================
 
-## Finished prototype
+Finished prototype
+------------------
 ![IMG_1498.jpg](./pictures/IMG_1498.jpg)
 
-## License
+License
+-------
     Copyright (C) 2017  Baptiste Candellier
 
     This program is free software: you can redistribute it and/or modify
@@ -18,3 +21,24 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Components
+----------
+
+| Part                          | Qty  | Manufacturer   | Reference          |
+|-------------------------------|------|----------------|--------------------|
+| Microcontroller               | x1   | Arduino        | Arduino Nano       |
+| Enclosure                     | x1   | Hammond        | 1591C              |
+| 7-segment display             | x3   | Multicomp      | LS0803SRWK         |
+| Potentiometer                 | x1   | Vishay         | 3296W-1-203LF      |
+| Slide switch                  | x1   | C&K            | OS102011MA1QN1     |
+| Slide switch                  | x1   | Knitter-Switch | MFS131D            |
+| Resistor (165 Ω)              | x8   | Vishay         | MRS25000C1650FCT00 |
+| DB25 male connector           | x1   | FCI            | DB25S064TLF        |
+| DB25 female connector + shell | x1   | MH             | MHDTPPK-25         | 
+| 10-pin wire-to-board housing  | x1   | Molex          | 22-01-2105         |
+| 5-pin wire-to-board housing   | x1   | Molex          | 22-01-2055         |
+| 10-pin wire-to-board header   | x1   | Molex          | 22-27-2101         |
+| 5-pin wire-to-board header    | x1   | Molex          | 22-27-2051         |
+| Crimp terminal                | many | Molex          | 0008500113         |
+
