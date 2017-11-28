@@ -1,4 +1,8 @@
 # Arduino-based Back to the Future DeLorean Speedometer
+
+## Finished prototype
+![IMG_1498.jpg](./pictures/IMG_1498.jpg)
+
 ## License
     Copyright (C) 2017  Baptiste Candellier
 
@@ -14,4 +18,3 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
