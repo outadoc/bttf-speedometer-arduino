@@ -41,4 +41,4 @@ Components
 | 10-pin wire-to-board header   | x1   | Molex          | 22-27-2101         |
 | 5-pin wire-to-board header    | x1   | Molex          | 22-27-2051         |
 | Crimp terminal                | many | Molex          | 0008500113         |
-
+| Labels                        | x3   | Dymo           | Omega              |
