@@ -27,6 +27,7 @@ Components
 
 | Part                          | Qty  | Manufacturer   | Reference          |
 |-------------------------------|------|----------------|--------------------|
+| OBD-II UART Adapter V2        | x1   | Freematics     | OBD-U              |
 | Microcontroller               | x1   | Arduino        | Arduino Nano       |
 | Enclosure                     | x1   | Hammond        | 1591C              |
 | 7-segment display             | x3   | Multicomp      | LS0803SRWK         |
