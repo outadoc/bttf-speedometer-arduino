@@ -35,6 +35,7 @@ Components
 | Slide switch                  | x1   | C&K            | OS102011MA1QN1     |
 | Slide switch                  | x1   | Knitter-Switch | MFS131D            |
 | Resistor (165 Ω)              | x8   | Vishay         | MRS25000C1650FCT00 |
+| 16-pin board-to-board conn.   | x2   | AMP            | 6-534237-4         |
 | DB25 male connector           | x1   | FCI            | DB25S064TLF        |
 | DB25 female connector + shell | x1   | MH             | MHDTPPK-25         | 
 | 10-pin wire-to-board housing  | x1   | Molex          | 22-01-2105         |
